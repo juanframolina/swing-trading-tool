@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Swing Trade Decision Tool</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght=400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f7f4eb; font-family: 'IBM Plex Mono', monospace; color: #2d3748; padding: 24px 18px; }
+    .container { max-width: 760px; margin: 0 auto; }
+    
+    /* Header */
+    .header { margin-bottom: 18px; padding-bottom: 14px; border-bottom: 2px dashed #d6d0c2; }
+    .header h1 { font-size: 30px; margin: 0; color: #c05621; letter-spacing: -1px; }
+    .subtitle { font-size: 10px; color: #a0aec0; margin-top: 3px; }
+
+    /* Cards & Grids */
+    .card { background: #ede8dc; border: 1px solid #d6d0c2; border-radius: 8px; padding: 12px 14px; margin-bottom: 18px; }
+    .label { font-size: 11px; color: #718096; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px; font-weight: 700; }
+    
+    /* Grouped Buttons Layout */
+    .tier-group { margin-bottom: 12px; padding: 6px 0; border-bottom: 1px dashed rgba(214, 208, 194, 0.6); }
+    .tier-group:last-child { border-bottom: none; }
+    .tier-group-title { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+    .grid-buttons { display: flex; gap: 6px; flex-wrap: wrap; }
+    
+    .grid-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin-bottom: 8px; }
+    .metric-box { background: #ede8dc; border: 1px solid #d6d0c2; border-radius: 6px; padding: 7px 10px; }
+    .metric-label { font-size: 9px; color: #718096; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px; }
+    .metric-val { font-size: 12px; font-weight: 700; }
+    .note-box { font-size: 10px; color: #6b758d; line-height: 1.6; font-style: italic; }
+
+    /* Tabs */
+    .tab-bar { display: flex; gap: 8px; margin-bottom: 22px; flex-wrap: wrap; }
+    .tab-btn { font-size: 11px; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-family: inherit; letter-spacing: 1px; font-weight: 700; transition: all 0.15s; border: 1px solid #d6d0c2; background: #ede8dc; color: #718096; }
+    .tab-btn.active { border-color: #c05621; background: rgba(192, 86, 33, 0.1); color: #c05621; }
+
+    /* Form Rows */
+    .row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 20px; }
+    .opts { display: flex; gap: 8px; flex-wrap: wrap; }
+    .opt-btn { display: flex; align-items: center; padding: 7px 12px; border-radius: 6px; border: 1px solid #d6d0c2; background: #ede8dc; color: #718096; font-size: 11px; cursor: pointer; font-family: inherit; transition: all 0.15s; }
+    .opt-btn.active { font-weight: 700; }
+    
+    input[type="number"], input[type="date"], input[type="text"] { background: #ede8dc; border: 1px solid #d6d0c2; border-radius: 6px; color: #2d3748; padding: 10px 12px; font-size: 13px; font-family: inherit; width: 100%; }
+    .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .mb20 { margin-bottom: 20px; }
+
+    /* Verdict Box */
+    .verdict-box { margin-top: 12px; border-radius: 10px; padding: 18px 20px; background: #ede8dc; box-shadow: 0 2px 8px rgba(0,0,0,0.06); display: none; }
+    .verdict-title { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 10px; }
+    .verdict-reason { font-size: 12px; line-height: 1.8; margin-bottom: 10px; }
+    .verdict-rules-box { margin-bottom: 10px; padding: 10px 14px; background: #f7f4eb; border-radius: 6px; }
+    .verdict-action { font-size: 11px; border-top: 1px solid #d6d0c2; padding-top: 10px; line-height: 1.7; }
+
+    /* Badges */
+    .phase-badge { display: flex; align-items: center; gap: 7px; padding: 9px 12px; border-radius: 8px; border: 2px solid #d6d0c2; opacity: 0.4; width: 100%; }
+    .phase-badge.active { opacity: 1; }
+    .phase-circle { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; }
+    .divider { display: flex; align-items: center; gap: 10px; margin: 20px 0 12px; }
+    .divider-line { flex: 1; height: 1px; background: #d6d0c2; }
+    .p-and-l { margin: 16px 0 8px; padding: 14px 18px; border-radius: 8px; display: none; }
+    
+    /* Log List */
+    .log-item { background: #ede8dc; border: 1px solid #d6d0c2; border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; }
+    
+    /* Editor Panel */
+    .config-panel { background: #fdfbf7; border: 1px dashed #c05621; border-radius: 6px; padding: 10px 12px; margin-top: 12px; display: none; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1 id="current-date-title">Swing Trade Tool</h1>
+    <div class="subtitle" id="strategy-subtitle">£10,000 blocks · 3-Phase Stop Strategy · £20,000 account</div>
+  </div>
+
+  <div class="card">
+    <div class="label" style="margin-bottom: 12px;">Select Asset to Analyse</div>
+    
+    <div class="tier-group">
+      <div class="tier-group-title" style="color: #008a65;">★ Tier 1 — High Liquidity & Momentum</div>
+      <div class="grid-buttons" id="tier1-buttons"></div>
+    </div>
+    
+    <div class="tier-group">
+      <div class="tier-group-title" style="color: #2b6cb0;">◆ Tier 2 — Stable, Safe & Paused Movers</div>
+      <div class="grid-buttons" id="tier2-buttons"></div>
+    </div>
+    
+    <div class="tier-group">
+      <div class="tier-group-title" style="color: #b87a00;">⚠ Tier 3 — High Volatility / Tactical Scalps</div>
+      <div class="grid-buttons" id="tier3-buttons"></div>
+    </div>
+
+    <div style="background: #f7f4eb; border-radius: 8px; padding: 12px 14px; border: 1px solid #d6d0c2; margin-top: 14px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span id="meta-ticker" style="font-size: 16px; font-weight: 700; color: #c05621;">NET</span>
+          <span id="meta-name" style="font-size: 12px; color: #718096;">Cloudflare</span>
+          <span id="meta-tier" style="font-size: 9px; padding: 2px 8px; border-radius: 3px; font-weight: 700;"></span>
+        </div>
+        <button id="edit-custom-btn" type="button" onclick="toggleConfigPanel()" style="display:none; background:none; border:1px solid #c05621; color:#c05621; padding:3px 8px; border-radius:4px; font-family:inherit; font-size:10px; font-weight:700; cursor:pointer;">
+          ✏️ Edit Asset Config
+        </button>
+      </div>
+      
+      <div id="custom-config-panel" class="config-panel">
+        <div style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #c05621; margin-bottom: 8px;">Modify Custom Asset Parameters</div>
+        <div class="g3" style="margin-bottom: 8px;">
+          <div><div class="label">Display Name</div><input type="text" id="cfg-name" placeholder="e.g. British American Tob."></div>
+          <div><div class="label">Beta</div><input type="number" step="any" id="cfg-beta" placeholder="e.g. 0.9"></div>
+          <div><div class="label">Block Size (£)</div><input type="number" id="cfg-block" placeholder="e.g. 10000"></div>
+        </div>
+        <div class="g3" style="margin-bottom: 10px;">
+          <div><div class="label">RSI Entry Zone</div><input type="text" id="cfg-rsiLabel" placeholder="e.g. 35–48"></div>
+          <div><div class="label">RSI Floor Val</div><input type="number" id="cfg-rsiFloor" placeholder="e.g. 35"></div>
+          <div><div class="label">Stoch Floor Val</div><input type="number" id="cfg-stochFloor" placeholder="e.g. 25"></div>
+        </div>
+        <div class="g3" style="margin-bottom: 10px;">
+          <div><div class="label">Min Stop %</div><input type="number" id="cfg-stopMin" placeholder="e.g. 3"></div>
+          <div><div class="label">Max Stop %</div><input type="number" id="cfg-stopMax" placeholder="e.g. 6"></div>
+          <div><div class="label">Max Hold (Days)</div><input type="number" id="cfg-holdDays" placeholder="e.g. 12"></div>
+        </div>
+        <div style="margin-bottom: 10px;">
+          <div class="label">Strategic Note</div>
+          <input type="text" id="cfg-note" placeholder="e.g. UK Asset in GBX. Pure dividend value tracker.">
+        </div>
+        <button type="button" onclick="saveCustomAssetConfig()" style="background:#c05621; color:#fff; border:none; padding:6px 12px; border-radius:4px; font-family:inherit; font-size:11px; font-weight:700; cursor:pointer;">
+          Save Custom Asset
+        </button>
+      </div>
+
+      <div class="grid-metrics" id="meta-metrics-container"></div>
+      <div class="note-box" id="meta-note"></div>
+    </div>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('check')">📋 Tonight's Check</button>
+    <button class="tab-btn" onclick="switchTab('trade')">📈 Trade Manager</button>
+    <button class="tab-btn" id="tab-log-btn" onclick="switchTab('log')">📓 Log (0)</button>
+  </div>
+
+  <div id="tab-check">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+      <div style="font-size: 10px; color: #718096;">
+        Answer what you see on TradingView. All 9 questions required for full verdict.
+      </div>
+      <button type="button" onclick="clearChecklistForCurrent()" style="background: none; border: 1px dashed #d92b4b; color: #d92b4b; padding: 4px 8px; border-radius: 4px; font-family: inherit; font-size: 9px; font-weight: 700; cursor: pointer;">
+        🗑 Clear Answers
+      </button>
+    </div>
+    <form id="checklist-form" onsubmit="event.preventDefault();"></form>
+    
+    <div class="verdict-box" id="verdict-wrapper">
+      <div class="verdict-title" id="v-title"></div>
+      <div class="verdict-reason" id="v-reason"></div>
+      <div class="verdict-rules-box" id="v-rules-box">
+        <div style="font-size:9px; color:#718096; text-transform:uppercase; letter-spacing:2px; margin-bottom:4px;">Rules for this trade</div>
+        <ul id="v-rules-list" style="margin:8px 0 0; padding-left:16px; font-size:11px; line-height:2;"></ul>
+      </div>
+      <div class="verdict-action" id="v-action"></div>
+      <div style="margin-top: 12px; border-top: 1px solid #d6d0c2; padding-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+        <input type="text" id="log-note-input" placeholder="Note (e.g. RSI 43, Stoch crossed)">
+        <button type="button" onclick="executeLogTrade()" style="background:#c05621; border:none; color:#fff; padding:8px 14px; border-radius:6px; cursor:pointer; font-family:inherit; font-size:11px; font-weight:700; white-space:nowrap;">
+          Log & Open Trade Manager →
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-trade" style="display:none;">
+    <div class="g3 mb20">
+      <div class="phase-badge" id="badge-p1"><div class="phase-circle" style="background:#2b6cb0;">1</div><span style="font-size:10px; font-weight:700;">Initial Stop</span></div>
+      <div class="phase-badge" id="badge-p2"><div class="phase-circle" style="background:#b87a00;">2</div><span style="font-size:10px; font-weight:700;">Sell Half / BE</span></div>
+      <div class="phase-badge" id="badge-p3"><div class="phase-circle" style="background:#008a65;">3</div><span style="font-size:10px; font-weight:700;">Trail & Exit</span></div>
+    </div>
+
+    <div class="divider"><div class="label" style="margin:0;">Phase 1 — Entry Day Data (fill once)</div><div class="divider-line"></div></div>
+    <div class="g2">
+      <div><div class="label">Entry date</div><input type="date" id="tm-entryDate" oninput="updateTMData()"></div>
+      <div><div class="label">Entry price (GBX/USD)</div><input type="number" step="any" id="tm-entryPrice" oninput="updateTMData()"></div>
+      <div><div class="label">ATR (14) on entry day</div><input type="number" step="any" id="tm-atrEntry" oninput="updateTMData()"></div>
+      <div><div class="label">Channel floor / Support</div><input type="number" step="any" id="tm-channelFloor" oninput="updateTMData()"></div>
+    </div>
+    
+    <div class="card" style="margin-top:15px; border-left:3px solid #2b6cb0;">
+      <div style="font-size:10px; color:#2b6cb0; text-transform:uppercase; letter-spacing:2px; font-weight:700; margin-bottom:10px;">Shares calculation</div>
+      <input type="number" id="tm-sharesOverride" oninput="updateTMData()" placeholder="Override shares">
+    </div>
+
+    <div class="divider"><div class="label" style="margin:0;">Tonight's Data — Update Every Evening</div><div class="divider-line"></div></div>
+    <div class="g3" style="margin-bottom:10px;">
+      <div><div class="label">Today's date</div><input type="date" id="tm-currentDate" oninput="updateTMData()"></div>
+      <div><div class="label">Current price</div><input type="number" step="any" id="tm-currentPrice" oninput="updateTMData()"></div>
+      <div><div class="label">Current ATR (14)</div><input type="number" step="any" id="tm-currentATR" oninput="updateTMData()"></div>
+    </div>
+    <div><div class="label">Channel upper line</div><input type="number" step="any" id="tm-channelUpper" oninput="updateTMData()"></div>
+
+    <div class="p-and-l" id="tm-pl-box">
+      <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+        <div><div class="label" style="margin:0;">Unrealised P&L</div><div id="tm-pl-val" style="font-size:22px; font-weight:700;"></div></div>
+        <div><div class="label" style="margin:0;">Return</div><div id="tm-pct-val" style="font-size:22px; font-weight:700;"></div></div>
+      </div>
+    </div>
+
+    <div id="tm-outputs-area" style="display:none;">
+      <div class="divider"><div class="label" style="margin:0;">Phase 1 — Initial Stop</div><div class="divider-line"></div></div>
+      <div class="g2">
+        <div class="card" style="border-left:3px solid #2b6cb0;"><div class="metric-label">Position size</div><div class="metric-val" id="out-pos-size"></div></div>
+        <div class="card" style="border-left:3px solid #d92b4b;"><div class="metric-label">Stop loss</div><div class="metric-val" id="out-stop-loss" style="color:#d92b4b;"></div></div>
+      </div>
+      <div class="divider"><div class="label" style="margin:0;">Phase 2 — Sell Half</div><div class="divider-line"></div></div>
+      <div class="g2">
+        <div class="card" id="card-p2-trig" style="border-left:3px solid #d6d0c2;"><div class="metric-label">Trigger price (+5%)</div><div class="metric-val" id="out-p2-trig"></div></div>
+        <div class="card" style="border-left:3px solid #b87a00;"><div class="metric-label">New Stop (BE)</div><div class="metric-val" id="out-p2-stop"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-log" style="display:none;">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:16px;">
+      <div style="font-size:10px; color:#718096;">Historical logs</div>
+      <div style="display:flex; gap:8px;">
+        <button type="button" onclick="exportToCSV()" style="background:#008a65; color:#fff; border:none; padding:6px 12px; border-radius:5px; font-size:10px; font-weight:700; cursor:pointer;">📥 Export CSV</button>
+        <label style="background:#2b6cb0; color:#fff; border:none; padding:6px 12px; border-radius:5px; font-size:10px; font-weight:700; cursor:pointer; display:inline-block;">
+          📤 Import CSV<input type="file" accept=".csv" onchange="importFromCSV(event)" style="display:none;">
+        </label>
+      </div>
+    </div>
+    <div id="log-list-container"></div>
+  </div>
+</div>
+
+<script>
+// ==========================================================
+// CONFIGURATION AND CONSTANTS
+// ==========================================================
+const BASE_PROFILES = {
+  // --- TIER 1 ---
+  NET:  { name:"Cloudflare",   tier:1, beta:1.5, atrMult:1.0, rsiFloor:35, rsiLabel:"35–50", stochFloor:25, blockGBP:10000, holdDays:10, stopMin:4,  stopMax:9,  note:"Trends cleanly inside channels. Channel floor is your best stop reference." },
+  NVDA: { name:"Nvidia",       tier:1, beta:1.8, atrMult:1.0, rsiFloor:45, rsiLabel:"45–55", stochFloor:30, blockGBP:10000, holdDays:10, stopMin:5,  stopMax:8,  note:"Rarely gets deeply oversold. Entry zone is higher RSI than most. Strong AI tailwind trend." },
+  META: { name:"Meta",         tier:1, beta:1.3, atrMult:1.0, rsiFloor:38, rsiLabel:"38–52", stochFloor:25, blockGBP:10000, holdDays:10, stopMin:5,  stopMax:7,  note:"Most reliable trend in the group. Best stock for this strategy. Clean pullbacks." },
+  CRWD: { name:"Crowdstrike",  tier:1, beta:1.6, atrMult:1.0, rsiFloor:35, rsiLabel:"35–50", stochFloor:25, blockGBP:7500,  holdDays:10, stopMin:6,  stopMax:9,  note:"Cybersecurity sector news can trigger sudden moves. Check headlines before entry." },
+  NFLX: { name:"Netflix",      tier:1, beta:1.4, atrMult:1.0, rsiFloor:38, rsiLabel:"38–52", stochFloor:25, blockGBP:10000, holdDays:10, stopMin:5,  stopMax:8,  note:"Trends well between earnings. Avoid holding through earnings dates." },
+  EQQQ: { name:"Invesco Nasdaq 100 ETF (GBP)", tier:1, beta:1.3, atrMult:1.0, rsiFloor:38, rsiLabel:"38–52", stochFloor:25, blockGBP:10000, holdDays:10, stopMin:3, stopMax:6, note:"ETF tecnológico. Movimiento rápido y noble. Excelente para rebotes en la MA50. Cero coste de divisa." },
+  CUST1:{ name:"[Click to configure T1]", tier:1, beta:1.0, atrMult:1.0, rsiFloor:35, rsiLabel:"35–50", stochFloor:25, blockGBP:10000, holdDays:10, stopMin:4,  stopMax:8,  note:"Custom slot 1 for Tier 1 asset.", isCustom: true },
+  CUST2:{ name:"[Click to configure T2]", tier:1, beta:1.0, atrMult:1.0, rsiFloor:35, rsiLabel:"35–50", stochFloor:25, blockGBP:10000, holdDays:10, stopMin:4,  stopMax:8,  note:"Custom slot 2 for Tier 1 asset.", isCustom: true },
+
+  // --- TIER 2 ---
+  AMZN: { name:"Amazon",       tier:2, beta:1.3, atrMult:1.0, rsiFloor:38, rsiLabel:"38–52", stochFloor:25, blockGBP:10000, holdDays:12, stopMin:4,  stopMax:7,  note:"Slower mover. Needs 10–12 days to hit 8–10% target. AWS earnings move it hard." },
+  GOOG: { name:"Alphabet",     tier:2, beta:1.2, atrMult:1.0, rsiFloor:40, rsiLabel:"40–52", stochFloor:28, blockGBP:10000, holdDays:12, stopMin:4,  stopMax:6,  note:"Reliable but slow. Better for 2-week holds. Very clean chart patterns." },
+  AAPL: { name:"Apple",        tier:2, beta:1.1, atrMult:0.8, rsiFloor:40, rsiLabel:"40–52", stochFloor:30, blockGBP:10000, holdDays:14, stopMin:3,  stopMax:5,  note:"Slow mover. 5–7% in 2 weeks realistic. Tight stops work. Not ideal for weekly targets." },
+  MSFT: { name:"Microsoft",    tier:2, beta:0.9, atrMult:0.8, rsiFloor:40, rsiLabel:"40–52", stochFloor:30, blockGBP:10000, holdDays:14, stopMin:3,  stopMax:5,  note:"Near-market beta. Clean slow trends. Better for longer holds than weekly swings." },
+  UBER: { name:"Uber",         tier:2, beta:1.3, atrMult:1.0, rsiFloor:38, rsiLabel:"38–52", stochFloor:25, blockGBP:10000, holdDays:10, stopMin:5,  stopMax:8,  note:"Improving fundamentals. Trending well. Watch macro/consumer sentiment." },
+  VUAG: { name:"Vanguard S&P 500 ETF (GBP)",   tier:2, beta:1.0, atrMult:0.8, rsiFloor:40, rsiLabel:"40–52", stochFloor:28, blockGBP:10000, holdDays:14, stopMin:2, stopMax:5, note:"ETF del S&P 500 en libras. Máxima seguridad. Movimiento pausado, requiere paciencia de unas 2 semanas." },
+  VWRL: { name:"Vanguard All-World ETF (GBP)", tier:2, beta:0.9, atrMult:0.8, rsiFloor:40, rsiLabel:"40–52", stochFloor:28, blockGBP:10000, holdDays:14, stopMin:2, stopMax:4, note:"ETF global en libras. Diversificación total. El activo más lento y seguro de la lista. Stops estrechos." },
+  CUST3:{ name:"[Click to configure T3]", tier:2, beta:1.0, atrMult:1.0, rsiFloor:40, rsiLabel:"40–52", stochFloor:25, blockGBP:10000, holdDays:12, stopMin:4,  stopMax:7,  note:"Custom slot 3 for Tier 2 asset.", isCustom: true },
+  CUST4:{ name:"[Click to configure T4]", tier:2, beta:1.0, atrMult:1.0, rsiFloor:40, rsiLabel:"40–52", stochFloor:25, blockGBP:10000, holdDays:12, stopMin:4,  stopMax:7,  note:"Custom slot 4 for Tier 2 asset.", isCustom: true },
+
+  // --- TIER 3 ---
+  TSLA: { name:"Tesla",        tier:3, beta:2.0, atrMult:1.2, rsiFloor:30, rsiLabel:"30–48", stochFloor:20, blockGBP:5000,  holdDays:7,  stopMin:7,  stopMax:12, note:"Highest volatility. Elon news moves it independently of the market. Half block only." },
+  PLTR: { name:"Palantir",     tier:3, beta:1.9, atrMult:1.2, rsiFloor:32, rsiLabel:"32–50", stochFloor:20, blockGBP:5000,  holdDays:8,  stopMin:6,  stopMax:11, note:"High beta, government contract news driven. Use half block. Volatile but trends." },
+  MSTR: { name:"MicroStrategy", tier:3, beta:2.5, atrMult:1.5, rsiFloor:28, rsiLabel:"28–45", stochFloor:15, blockGBP:3000,  holdDays:5,  stopMin:8,  stopMax:15, note:"Extreme volatility — tracks Bitcoin. Small block only. Not for beginners." },
+};
+
+let PROFILES = { ...BASE_PROFILES };
+const TICKERS = Object.keys(PROFILES);
+const TIER_LABEL = {1:"★ Tier 1 — Best fit", 2:"◆ Tier 2 — Works, slower", 3:"⚠ Tier 3 — High risk"};
+const TIER_COLOR = {1:"#008a65", 2:"#2b6cb0", 3:"#b87a00"};
+
+const GBP_USD = 1.27;
+const FX_COST = 0.003;
+const TODAY_STR = new Date().toLocaleDateString("en-GB", {day:"2-digit", month:"short", year:"numeric"});
+
+// Global Stores (Loaded from LocalStorage)
+let currentTab = 'check';
+let currentTicker = localStorage.getItem("swing-last-ticker-v2") || 'NET';
+let checklistAnswersStore = JSON.parse(localStorage.getItem("swing-checklist-store-v2")) || {};
+let tradeManagerStore = JSON.parse(localStorage.getItem("swing-tm-native-v2")) || {};
+let generalLog = JSON.parse(localStorage.getItem("swing-log-native-v2")) || [];
+let customProfilesStore = JSON.parse(localStorage.getItem("swing-custom-profiles-v2")) || {};
+
+// Merge saved custom profiles into runtime engine object
+Object.keys(customProfilesStore).forEach(k => {
+  if (PROFILES[k]) PROFILES[k] = { ...PROFILES[k], ...customProfilesStore[k] };
+});
+
+let checklistAnswers = {};
+
+const QUESTIONS = [
+  { k: "priceVsMA50", l: "1 · Is price ABOVE the MA50?", o: [{v:"above",t:"✓ Above MA50",c:"#008a65"},{v:"on",t:"≈ Right on it",c:"#b87a00"},{v:"below",t:"✗ Below MA50",c:"#d92b4b"}] },
+  { k: "ma50Dir", l: "2 · Which way is MA50 pointing?", o: [{v:"up",t:"↗ Pointing up",c:"#008a65"},{v:"flat",t:"→ Flat",c:"#b87a00"},{v:"down",t:"↘ Pointing down",c:"#d92b4b"}] },
+  { k: "rsiZone", l: "3 · Where is RSI (14) right now?", o: [{v:"below35",t:"Below 35",c:"#b87a00"},{v:"35to50",t:"35–50 ★",c:"#008a65"},{v:"50to60",t:"50–60",c:"#2e9e82"},{v:"above60",t:"Above 60",c:"#d92b4b"}] },
+  { k: "rsiHook", l: "4 · Is RSI hooking upward?", o: [{v:"yes",t:"Yes — ticking up",c:"#008a65"},{v:"no",t:"No — still falling",c:"#d92b4b"},{v:"flat",t:"Flat / unclear",c:"#b87a00"}] },
+  { k: "stochLevel", l: "5 · Where are BOTH Stochastic lines (K and D)?", o: [{v:"below20",t:"Both below 20 ★★",c:"#008a65"},{v:"20to30",t:"Both 20–30 ★",c:"#2e9e82"},{v:"30to50",t:"30–50 (mild)",c:"#b87a00"},{v:"above50",t:"Above 50",c:"#d92b4b"}] },
+  { k: "stochCross", l: "6 · Is the K line crossing above the D line?", o: [{v:"crossed",t:"✓ K just crossed above D ★★",c:"#008a65"},{v:"converging",t:"K moving toward D ★",c:"#2e9e82"},{v:"no",t:"Not crossing / flat",c:"#b87a00"},{v:"above",t:"K already well above D",c:"#d92b4b"}] },
+  { k: "candle", l: "7 · Today's daily candle shape?", o: [{v:"hammer",t:"🔨 Hammer",c:"#008a65"},{v:"engulfing",t:"↕ Bullish Engulfing",c:"#008a65"},{v:"doji",t:"┼ Doji",c:"#b87a00"},{v:"none",t:"Plain candle",c:"#718096"}] },
+  { k: "volume", l: "8 · Volume vs average today?", o: [{v:"above",t:"Above average ★",c:"#008a65"},{v:"average",t:"About average",c:"#b87a00"},{v:"below",t:"Below average",c:"#d92b4b"}] },
+  { k: "macd", l: "9 · Is MACD converging or crossed?", o: [{v:"crossed",t:"✓ Already crossed ✓",c:"#2e9e82"},{v:"yes",t:"Converging toward cross",c:"#008a65"},{v:"no",t:"Diverging / flat",c:"#b87a00"}] }
+];
+
+// ==========================================================
+// INITIALIZATION
+// ==========================================================
+window.onload = function() {
+  document.getElementById('current-date-title').innerText = `Swing Trade Tool — ${TODAY_STR}`;
+  
+  // Render Ticker Selectors Grouped by Tiers
+  TICKERS.forEach(t => {
+    const p = PROFILES[t];
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.innerText = p.cleanTickerLabel ? p.cleanTickerLabel : t;
+    btn.id = `btn-ticker-${t}`;
+    btn.style = "padding:7px 12px; font-size:11px; font-family:inherit; border-radius:6px; cursor:pointer; font-weight:700; border:1px solid #d6d0c2; transition:all 0.15s;";
+    btn.onclick = () => selectTicker(t);
+    
+    if(p.tier === 1) document.getElementById('tier1-buttons').appendChild(btn);
+    if(p.tier === 2) document.getElementById('tier2-buttons').appendChild(btn);
+    if(p.tier === 3) document.getElementById('tier3-buttons').appendChild(btn);
+  });
+
+  // Render Form Questions
+  const form = document.getElementById('checklist-form');
+  QUESTIONS.forEach(q => {
+    const row = document.createElement('div');
+    row.className = 'row';
+    const label = document.createElement('div');
+    label.className = 'label';
+    label.innerText = q.l;
+    row.appendChild(label);
+
+    const optsContainer = document.createElement('div');
+    optsContainer.className = 'opts';
+
+    q.o.forEach(opt => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'opt-btn';
+      b.id = `opt-${q.k}-${opt.v}`;
+      b.innerText = opt.t;
+      b.onclick = () => handleAnswer(q.k, opt.v, opt.c);
+      optsContainer.appendChild(b);
+    });
+
+    row.appendChild(optsContainer);
+    form.appendChild(row);
+  });
+
+  if(!PROFILES[currentTicker]) currentTicker = 'NET';
+  selectTicker(currentTicker);
+};
+
+// ==========================================================
+// CORE CONTROLLER FUNCTIONS
+// ==========================================================
+function selectTicker(t) {
+  currentTicker = t;
+  localStorage.setItem("swing-last-ticker-v2", t);
+  const p = PROFILES[t];
+  
+  // Highlight Ticker Button
+  TICKERS.forEach(x => {
+    const btn = document.getElementById(`btn-ticker-${x}`);
+    const activeProfile = PROFILES[x];
+    if(x === t) {
+      btn.style.background = TIER_COLOR[activeProfile.tier];
+      btn.style.borderColor = TIER_COLOR[activeProfile.tier];
+      btn.style.color = '#fff';
+    } else {
+      btn.style.background = '#f7f4eb';
+      btn.style.borderColor = '#d6d0c2';
+      btn.style.color = '#2d3748';
+    }
+  });
+
+  // Render Metadata Card
+  document.getElementById('meta-ticker').innerText = p.cleanTickerLabel ? p.cleanTickerLabel : t;
+  document.getElementById('meta-name').innerText = p.name;
+  
+  const tierBadge = document.getElementById('meta-tier');
+  tierBadge.innerText = TIER_LABEL[p.tier];
+  tierBadge.style.background = TIER_COLOR[p.tier] + "18";
+  tierBadge.style.color = TIER_COLOR[p.tier];
+  tierBadge.style.border = `1px solid ${TIER_COLOR[p.tier]}44`;
+
+  // Custom configuration panel view control
+  const configPanel = document.getElementById('custom-config-panel');
+  configPanel.style.display = 'none';
+  const editBtn = document.getElementById('edit-custom-btn');
+  if(p.isCustom) {
+    editBtn.style.display = 'block';
+  } else {
+    editBtn.style.display = 'none';
+  }
+
+  document.getElementById('meta-metrics-container').innerHTML = `
+    <div class="metric-box"><div class="metric-label">Beta</div><div class="metric-val">~${p.beta}</div></div>
+    <div class="metric-box"><div class="metric-label">RSI entry zone</div><div class="metric-val">${p.rsiLabel}</div></div>
+    <div class="metric-box"><div class="metric-label">Stoch floor</div><div class="metric-val">Below ${p.stochFloor}</div></div>
+    <div class="metric-box"><div class="metric-label">Block size</div><div class="metric-val">£${p.blockGBP.toLocaleString()}</div></div>
+    <div class="metric-box"><div class="metric-label">Stop range</div><div class="metric-val">${p.stopMin}–${p.stopMax}%</div></div>
+    <div class="metric-box"><div class="metric-label">Max hold</div><div class="metric-val">${p.holdDays} days</div></div>
+  `;
+  document.getElementById('meta-note').innerText = `💡 ${p.note}`;
+
+  // Load Saved Checklist Answers for this Ticker
+  checklistAnswers = checklistAnswersStore[t] || {};
+  document.getElementById('verdict-wrapper').style.display = 'none';
+
+  QUESTIONS.forEach(q => {
+    const savedVal = checklistAnswers[q.k];
+    q.o.forEach(opt => {
+      const b = document.getElementById(`opt-${q.k}-${opt.v}`);
+      if(savedVal && opt.v === savedVal) {
+        b.className = 'opt-btn active';
+        b.style.borderColor = opt.c;
+        b.style.background = opt.c + "18";
+        b.style.color = opt.c;
+      } else {
+        b.className = 'opt-btn';
+        b.style = "";
+      }
+    });
+  });
+
+  if (Object.keys(checklistAnswers).length === QUESTIONS.length) {
+    evaluateDecisionMatrix();
+  }
+
+  loadTMForTicker(t);
+  updateLogTabUI();
+}
+
+// Custom Config Inline UI Controllers
+function toggleConfigPanel() {
+  const panel = document.getElementById('custom-config-panel');
+  if(panel.style.display === 'block') {
+    panel.style.display = 'none';
+  } else {
+    panel.style.display = 'block';
+    const p = PROFILES[currentTicker];
+    document.getElementById('cfg-name').value = p.name.includes('[Click to') ? "" : p.name;
+    document.getElementById('cfg-beta').value = p.beta;
+    document.getElementById('cfg-block').value = p.blockGBP;
+    document.getElementById('cfg-rsiLabel').value = p.rsiLabel;
+    document.getElementById('cfg-rsiFloor').value = p.rsiFloor;
+    document.getElementById('cfg-stochFloor').value = p.stochFloor;
+    document.getElementById('cfg-stopMin').value = p.stopMin;
+    document.getElementById('cfg-stopMax').value = p.stopMax;
+    document.getElementById('cfg-holdDays').value = p.holdDays;
+    document.getElementById('cfg-note').value = p.note.includes('Custom slot') ? "" : p.note;
+  }
+}
+
+function saveCustomAssetConfig() {
+  const rawName = document.getElementById('cfg-name').value.trim();
+  if(!rawName) { alert("Please type an Asset Name."); return; }
+  
+  // Format clean string ticker token upper-cased
+  const cleanTicker = rawName.split(" ")[0].replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(0, 5);
+
+  const updatedNode = {
+    cleanTickerLabel: cleanTicker,
+    name: rawName,
+    beta: parseFloat(document.getElementById('cfg-beta').value) || 1.0,
+    blockGBP: parseInt(document.getElementById('cfg-block').value) || 10000,
+    rsiLabel: document.getElementById('cfg-rsiLabel').value.trim() || "35-50",
+    rsiFloor: parseInt(document.getElementById('cfg-rsiFloor').value) || 35,
+    stochFloor: parseInt(document.getElementById('cfg-stochFloor').value) || 25,
+    stopMin: parseInt(document.getElementById('cfg-stopMin').value) || 4,
+    stopMax: parseInt(document.getElementById('cfg-stopMax').value) || 8,
+    holdDays: parseInt(document.getElementById('cfg-holdDays').value) || 10,
+    note: document.getElementById('cfg-note').value.trim() || "Custom tracked ticker profile."
+  };
+
+  // Commit updates locally 
+  PROFILES[currentTicker] = { ...PROFILES[currentTicker], ...updatedNode };
+  customProfilesStore[currentTicker] = updatedNode;
+  localStorage.setItem("swing-custom-profiles-v2", JSON.stringify(customProfilesStore));
+
+  // Dynamically update original category trigger button text labels
+  const btn = document.getElementById(`btn-ticker-${currentTicker}`);
+  if(btn) btn.innerText = cleanTicker;
+
+  // Refresh active selection layout render state
+  selectTicker(currentTicker);
+}
+
+function handleAnswer(questionKey, val, color) {
+  checklistAnswers[questionKey] = val;
+  checklistAnswersStore[currentTicker] = checklistAnswers;
+  localStorage.setItem("swing-checklist-store-v2", JSON.stringify(checklistAnswersStore));
+  
+  const qObj = QUESTIONS.find(q => q.k === questionKey);
+  qObj.o.forEach(opt => {
+    const b = document.getElementById(`opt-${questionKey}-${opt.v}`);
+    if(opt.v === val) {
+      b.className = 'opt-btn active';
+      b.style.borderColor = color;
+      b.style.background = color + "18";
+      b.style.color = color;
+    } else {
+      b.className = 'opt-btn';
+      b.style = "";
+    }
+  });
+
+  if (Object.keys(checklistAnswers).length === QUESTIONS.length) {
+    evaluateDecisionMatrix();
+  }
+}
+
+function clearChecklistForCurrent() {
+  const label = PROFILES[currentTicker].cleanTickerLabel || currentTicker;
+  if(confirm(`Do you want to reset the questions for ${label}?`)) {
+    checklistAnswers = {};
+    delete checklistAnswersStore[currentTicker];
+    localStorage.setItem("swing-checklist-store-v2", JSON.stringify(checklistAnswersStore));
+    
+    QUESTIONS.forEach(q => {
+      q.o.forEach(opt => {
+        const b = document.getElementById(`opt-${q.k}-${opt.v}`);
+        b.className = 'opt-btn';
+        b.style = "";
+      });
+    });
+    document.getElementById('verdict-wrapper').style.display = 'none';
+    window.lastCalculatedVerdict = null;
+  }
+}
+
+function switchTab(t) {
+  currentTab = t;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+
+  document.getElementById('tab-check').style.display = t === 'check' ? 'block' : 'none';
+  document.getElementById('tab-trade').style.display = t === 'trade' ? 'block' : 'none';
+  document.getElementById('tab-log').style.display = t === 'log' ? 'block' : 'none';
+  
+  if(t === 'log') renderLogArchiveList();
+}
+
+// ==========================================================
+// DECISION ENGINE
+// ==========================================================
+function evaluateDecisionMatrix() {
+  const profile = PROFILES[currentTicker];
+  const activeLabel = profile.cleanTickerLabel || currentTicker;
+  const chk = checklistAnswers;
+  let v = { verdict: "", color: "#718096", emoji: "⚡", reason: "", action: "", rules: [], type: "trend" };
+
+  if(chk.priceVsMA50 === "below") {
+    const condsMet = chk.stochLevel==="below20" && chk.stochCross==="crossed" && chk.rsiZone==="below35" && chk.rsiHook==="yes" && (chk.candle==="hammer"||chk.candle==="engulfing") && chk.volume==="above";
+    const condsPartial = (chk.stochLevel==="below20"||chk.stochCross==="crossed") && (chk.rsiZone==="below35"||chk.rsiHook==="yes") && (chk.candle==="hammer"||chk.candle==="engulfing");
+
+    if(condsMet) {
+      v = {
+        verdict:"COUNTER-TREND — SMALL POSITION ONLY", color:"#b87a00", emoji:"⚡", type: "counter",
+        reason:"All 5 counter-trend conditions met: Stoch deeply oversold + K crossing D, RSI hooking up, strong reversal candle, above-average volume. Price is below MA50 so this is a snap-back trade only.",
+        action:`Enter with HALF your normal block (£${(profile.blockGBP/2).toLocaleString()} max). Target is the MA50 line only — take profit when price touches MA50 from below. Tight stop. Max hold: 5 days.`,
+        rules:[`Position size: £${(profile.blockGBP/2).toLocaleString()} maximum (half block)`,`Target: MA50 line only — exit when price touches it from below`,`Stop: ATR × 0.8 below entry (tighter than normal)`,`Max hold: 5 days regardless`]
+      };
+    } else if(condsPartial) {
+      v = { verdict:"WAIT — BELOW MA50, CONDITIONS PARTIAL", color:"#d92b4b", emoji:"🚫", type:"none", reason:"Price is below MA50. Some counter-trend signals are forming but not all 5 required conditions are met yet.", action:"Wait. You need: Stoch both lines below 20 + K crossing D + RSI below 35 hooking up + hammer or engulfing candle + volume." };
+    } else {
+      v = { verdict:"NO TRADE — BELOW MA50", color:"#d92b4b", emoji:"🚫", type:"none", reason:"Price is below MA50 and counter-trend conditions are not forming. The trend is against you.", action:"Close the chart. Come back when price reclaims MA50." };
+    }
+  } else if(chk.ma50Dir === "down") {
+    v = { verdict:"NO TRADE — MA50 POINTING DOWN", color:"#d92b4b", emoji:"🚫", type:"none", reason:"Price is above MA50 but MA50 itself is pointing sharply down — the trend is deteriorating fast.", action:"Wait for MA50 to flatten before considering entry." };
+  } else if(chk.rsiZone === "above60") {
+    v = { verdict:"WAIT — RSI TOO HOT", color:"#b87a00", emoji:"⏳", type:"none", reason:`RSI above 60 on ${activeLabel} — you'd be chasing. ${activeLabel}'s ideal entry RSI is ${profile.rsiLabel}.`, action:"Set a TradingView alert for RSI crossing back down." };
+  } else if(chk.rsiZone === "below35" && chk.rsiHook === "no") {
+    v = { verdict:"WAIT — STILL FALLING", color:"#b87a00", emoji:"⏳", type:"none", reason:"RSI is below 35 but hasn't hooked upward yet. The dip may not be over.", action:"Wait for RSI to tick up for 2 consecutive days." };
+  } else {
+    let score = 0;
+    let bonuses = [];
+
+    if(chk.rsiZone === "35to50") score += 3;
+    if(chk.rsiZone === "below35" && chk.rsiHook === "yes") score += 2;
+    if(chk.rsiZone === "50to60" && chk.rsiHook === "yes") score += 1;
+    if(chk.rsiHook === "yes") { score += 2; bonuses.push("RSI hooking up ✓"); }
+
+    if(chk.stochLevel === "below20" && chk.stochCross === "crossed") { score += 4; bonuses.push("Dual oversold confluence ★★"); }
+    else if(chk.stochLevel === "below20" && chk.stochCross === "converging") { score += 2; bonuses.push("Stoch deeply oversold, cross imminent ★"); }
+    else if(chk.stochLevel === "20to30" && chk.stochCross === "crossed") { score += 2; bonuses.push("Stoch oversold + K crossed D ★"); }
+    else if(chk.stochCross === "crossed") { score += 1; bonuses.push("Stoch K crossed D"); }
+
+    if(chk.candle === "hammer" || chk.candle === "engulfing") { score += 2; bonuses.push("Reversal candle ✓"); }
+    if(chk.volume === "above") { score += 1; bonuses.push("Above-average volume ✓"); }
+    if(chk.macd === "crossed" || chk.macd === "yes") score += 1;
+    if(chk.ma50Dir === "up") { score += 2; bonuses.push("MA50 trending up ✓"); }
+
+    if(score >= 10) {
+      v = {
+        verdict:"STRONG SETUP — ENTER", color:"#008a65", emoji:"✅", type:"trend",
+        reason:`Excellent confluence for ${activeLabel}: ${bonuses.join(", ")}.`,
+        action:`Enter at market open tomorrow. Full £${profile.blockGBP.toLocaleString()} block. Use Trade Manager to set your 3-phase plan.`,
+        rules:[`Full block: £${profile.blockGBP.toLocaleString()}`,`Stop: ATR×${profile.atrMult} below entry`,`Target 1: +5% → sell half`,`Max hold: ${profile.holdDays} days`]
+      };
+    } else if(score >= 7) {
+      v = {
+        verdict:"GOOD SETUP — ENTER", color:"#2e9e82", emoji:"✅", type:"trend",
+        reason:`Good setup for ${activeLabel}: ${bonuses.length > 0 ? bonuses.join(", ") : "core conditions met"}.`,
+        action:`Enter at open. Full £${profile.blockGBP.toLocaleString()} block. Set stop immediately.`,
+        rules:[`Full block: £${profile.blockGBP.toLocaleString()}`,`Stop: ATR×${profile.atrMult} below entry`,`Max hold: ${profile.holdDays} days`]
+      };
+    } else if(score >= 4) {
+      v = {
+        verdict:"DECENT SETUP — CONSIDER", color:"#b87a00", emoji:"🟡", type:"trend",
+        reason:`Core conditions met but confirmation is partial.`,
+        action:`Consider entry with reduced size: £${(profile.blockGBP*0.6).toLocaleString()} (60% of normal block).`,
+        rules:[`Reduced block: £${(profile.blockGBP*0.6).toLocaleString()}`,`Tighter stop than usual`,`Exit if no movement in 4 days`]
+      };
+    } else {
+      v = { verdict:"MARGINAL — SKIP OR WAIT", color:"#b87a00", emoji:"⏳", type:"none", reason:`Not enough signals aligning for ${activeLabel} right now.`, action:"Wait 1–2 days. Watch for RSI to settle and Stoch K line to cross above D." };
+    }
+  }
+
+  const wrapper = document.getElementById('verdict-wrapper');
+  wrapper.style.display = 'block';
+  wrapper.style.borderColor = v.color;
+  
+  document.getElementById('v-title').innerHTML = `<span>${v.emoji}</span> <span style="color:${v.color}">${v.verdict}</span>`;
+  document.getElementById('v-reason').innerText = v.reason;
+  document.getElementById('v-action').innerHTML = `<span style="color:#718096; text-transform:uppercase; font-size:9px; letter-spacing:2px;">Action → </span>${v.action}`;
+  
+  const rBox = document.getElementById('v-rules-box');
+  const rList = document.getElementById('v-rules-list');
+  rList.innerHTML = "";
+  if(v.rules && v.rules.length > 0) {
+    rBox.style.display = 'block';
+    rBox.style.borderLeft = `3px solid ${v.color}`;
+    v.rules.forEach(r => { const li = document.createElement('li'); li.innerText = r; rList.appendChild(li); });
+  } else {
+    rBox.style.display = 'none';
+  }
+
+  window.lastCalculatedVerdict = v;
+}
+
+// ==========================================================
+// LOGS MANAGEMENT
+// ==========================================================
+function executeLogTrade() {
+  const v = window.lastCalculatedVerdict;
+  if(!v) return;
+  
+  const noteInput = document.getElementById('log-note-input');
+  const entryPriceVal = document.getElementById('tm-entryPrice').value;
+  const sharesOverrideVal = document.getElementById('tm-sharesOverride').value;
+  const activeLabel = PROFILES[currentTicker].cleanTickerLabel || currentTicker;
+  
+  let finalShares = parseInt(sharesOverrideVal) || 0;
+  if (!finalShares && entryPriceVal > 0) {
+    const p = PROFILES[currentTicker];
+    const isUKAsset = p.name.includes('(GBP)');
+    const rate = isUKAsset ? 1.0 : GBP_USD;
+    finalShares = Math.floor((p.blockGBP * rate) / parseFloat(entryPriceVal));
+  }
+
+  const logEntry = {
+    id: Date.now(),
+    ticker: activeLabel,
+    date: TODAY_STR,
+    entryPrice: entryPriceVal || "0",
+    shares: finalShares || "0",
+    verdict: v.verdict,
+    entryType: v.type,
+    note: noteInput.value || "",
+    outcome: ""
+  };
+
+  generalLog.unshift(logEntry);
+  localStorage.setItem("swing-log-native-v2", JSON.stringify(generalLog));
+  
+  noteInput.value = "";
+  updateLogTabUI();
+  
+  let tm = tradeManagerStore[currentTicker] || {};
+  if(!tm.entryPrice && entryPriceVal) tm.entryPrice = entryPriceVal;
+  tradeManagerStore[currentTicker] = tm;
+  localStorage.setItem("swing-tm-native-v2", JSON.stringify(tradeManagerStore));
+
+  switchTab('trade');
+  loadTMForTicker(currentTicker);
+}
+
+function updateLogOutcome(id, newVal) {
+  generalLog = generalLog.map(item => item.id === id ? { ...item, outcome: newVal } : item);
+  localStorage.setItem("swing-log-native-v2", JSON.stringify(generalLog));
+  updateLogTabUI();
+}
+
+function updateLogTabUI() {
+  const activeLabel = PROFILES[currentTicker].cleanTickerLabel || currentTicker;
+  const tLog = generalLog.filter(item => item.ticker === activeLabel);
+  document.getElementById('tab-log-btn').innerText = `📓 Log (${tLog.length})`;
+}
+
+function renderLogArchiveList() {
+  const container = document.getElementById('log-list-container');
+  container.innerHTML = "";
+  const activeLabel = PROFILES[currentTicker].cleanTickerLabel || currentTicker;
+  const tLog = generalLog.filter(item => item.ticker === activeLabel);
+
+  if(tLog.length === 0) {
+    container.innerHTML = `<div style="text-align:center; color:#a0aec0; font-size:12px; margin-top:40px;">No trades logged yet for ${activeLabel}.</div>`;
+    return;
+  }
+
+  tLog.forEach(e => {
+    const div = document.createElement('div');
+    div.className = 'log-item';
+    div.innerHTML = `
+      <div style="display:flex; gap:8px; align-items:baseline; flex-wrap:wrap; margin-bottom:6px;">
+        <span style="font-size:10px; color:#718096;">${e.date}</span>
+        <span style="font-size:11px; font-weight:700; color:#c05621;">[${e.ticker}]</span>
+        <span style="font-size:13px; font-weight:700;">Price: ${e.entryPrice} (${e.shares} units)</span>
+        <span style="font-size:10px; color:#718096; font-style:italic;">${e.note ? '— '+e.note : ''}</span>
+      </div>
+      <div style="font-size:10px; color:#718096; margin-bottom:4px;">Verdict context: ${e.verdict}</div>
+    `;
+    
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.value = e.outcome || "";
+    inp.placeholder = "Outcome summary...";
+    inp.oninput = (ev) => updateLogOutcome(e.id, ev.target.value);
+    
+    div.appendChild(inp);
+    container.appendChild(div);
+  });
+}
+
+// ==========================================================
+// TRADE MANAGER LOGIC ENGINE
+// ==========================================================
+function loadTMForTicker(t) {
+  let tm = tradeManagerStore[t] || {};
+  const fields = ['entryDate', 'entryPrice', 'atrEntry', 'channelFloor', 'currentDate', 'currentPrice', 'currentATR', 'channelUpper', 'sharesOverride'];
+  fields.forEach(f => {
+    const el = document.getElementById(`tm-${f}`);
+    if(el) el.value = tm[f] || "";
+  });
+  updateTMData();
+}
+
+function updateTMData() {
+  let tm = tradeManagerStore[currentTicker] || {};
+  const fields = ['entryDate', 'entryPrice', 'atrEntry', 'channelFloor', 'currentDate', 'currentPrice', 'currentATR', 'channelUpper', 'sharesOverride'];
+  
+  fields.forEach(f => {
+    const el = document.getElementById(`tm-${f}`);
+    if(el) tm[f] = el.value;
+  });
+  
+  tradeManagerStore[currentTicker] = tm;
+  localStorage.setItem("swing-tm-native-v2", JSON.stringify(tradeManagerStore));
+
+  const profile = PROFILES[currentTicker];
+  const ep = parseFloat(tm.entryPrice) || 0;
+  const overr = parseInt(tm.sharesOverride) || 0;
+  const cp = parseFloat(tm.currentPrice) || ep;
+  const atrE = parseFloat(tm.atrEntry) || 0;
+  const atrC = parseFloat(tm.currentATR) || atrE;
+  const cf = parseFloat(tm.channelFloor) || 0;
+
+  const isUKAsset = profile.name.includes('(GBP)') || profile.name.includes('GBX');
+  const rate = isUKAsset ? 1.0 : GBP_USD;
+  const fxCostRate = isUKAsset ? 0.0 : FX_COST;
+
+  const placeholderShares = ep > 0 ? Math.floor((profile.blockGBP * rate) / ep) : 0;
+  const shInput = document.getElementById('tm-sharesOverride');
+  if(shInput) shInput.placeholder = placeholderShares ? `${placeholderShares} (auto)` : "Override units";
+
+  const finalShares = overr ? overr : placeholderShares;
+
+  if(!ep || !finalShares) {
+    document.getElementById('tm-pl-box').style.display = 'none';
+    document.getElementById('tm-outputs-area').style.display = 'none';
+    resetBadges();
+    return;
+  }
+
+  const posLocalCurrency = finalShares * ep;
+  const posGBP = isUKAsset ? posLocalCurrency : (posLocalCurrency / GBP_USD);
+  const fxGBP = posGBP * fxCostRate;
+
+  const atrStop = atrE > 0 ? ep - (atrE * profile.atrMult) : 0;
+  const chanStop = cf > 0 ? cf - (ep * 0.005) : 0;
+  let p1Stop = Math.max(atrStop, chanStop) || atrStop || chanStop || 0;
+
+  const p2Price = ep * 1.05;
+  const p2Reached = cp >= p2Price;
+  const p3Target = parseFloat(tm.channelUpper) || 0;
+  const p3Reached = p2Reached && p3Target > 0 && cp >= p3Target;
+
+  let activePhase = 1;
+  if(p3Reached) activePhase = 3;
+  else if(p2Reached) activePhase = 2;
+  setBadgePhases(activePhase);
+
+  const unrealPL = isUKAsset ? (finalShares * (cp - ep)) : (((finalShares * cp) - (finalShares * ep)) / GBP_USD - fxGBP);
+  const unrealPct = (((cp - ep) / ep) * 100).toFixed(1);
+
+  const plBox = document.getElementById('tm-pl-box');
+  const plVal = document.getElementById('tm-pl-val');
+  const pctVal = document.getElementById('tm-pct-val');
+  
+  plBox.style.display = 'block';
+  plVal.innerText = (unrealPL >= 0 ? "+" : "") + `£${Math.round(unrealPL).toLocaleString()}`;
+  pctVal.innerText = (unrealPct >= 0 ? "+" : "") + `${unrealPct}%`;
+  
+  if(unrealPL >= 0) {
+    plBox.style.background = "rgba(0, 138, 101, 0.07)";
+    plBox.style.border = "2px solid #008a65";
+    plVal.style.color = "#008a65";
+    pctVal.style.color = "#008a65";
+  } else {
+    plBox.style.background = "rgba(217, 43, 75, 0.07)";
+    plBox.style.border = "2px solid #d92b4b";
+    plVal.style.color = "#d92b4b";
+    pctVal.style.color = "#d92b4b";
+  }
+
+  document.getElementById('tm-outputs-area').style.display = 'block';
+  document.getElementById('out-pos-size').innerText = `£${Math.round(posGBP).toLocaleString()} (${isUKAsset ? 'Local' : '$'+Math.round(posLocalCurrency).toLocaleString()})`;
+  document.getElementById('out-stop-loss').innerText = p1Stop ? `${p1Stop.toFixed(2)} (${(((p1Stop - ep)/ep)*100).toFixed(1)}%)` : "No stop data";
+  
+  const p2Card = document.getElementById('card-p2-trig');
+  document.getElementById('out-p2-trig').innerText = `${p2Price.toFixed(2)}`;
+  if(p2Reached) {
+    p2Card.style.borderLeft = "3px solid #008a65";
+    p2Card.style.background = "rgba(0, 138, 101, 0.05)";
+  } else {
+    p2Card.style.borderLeft = "3px solid #d6d0c2";
+    p2Card.style.background = "#ede8dc";
+  }
+  document.getElementById('out-p2-stop').innerText = `${(ep * 1.002).toFixed(2)} (Break Even)`;
+}
+
+function setBadgePhases(phaseNum) {
+  resetBadges();
+  for(let i=1; i<=phaseNum; i++) {
+    document.getElementById(`badge-p${i}`).classList.add('active');
+  }
+}
+function resetBadges() {
+  document.querySelectorAll('.phase-badge').forEach(b => b.classList.remove('active'));
+}
+
+// ==========================================================
+// IMPORT / EXPORT OPERATIONS
+// ==========================================================
+function exportToCSV() {
+  if(!generalLog.length) { alert("No trades to export."); return; }
+  let csv = "\uFEFFDate,Ticker,Entry Price,Shares,Verdict,Entry Type,Note,Outcome\n";
+  generalLog.forEach(e => {
+    const clean = s => (s || "").replace(/,/g, " -").replace(/\n/g, " ").replace(/"/g, "'");
+    csv += `"${e.date}","${e.ticker}","${e.entryPrice}","${e.shares}","${clean(e.verdict)}","${e.entryType}","${clean(e.note)}","${clean(e.outcome)}"\n`;
+  });
+  
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `swing_trade_log_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function importFromCSV(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const lines = e.target.result.split("\n");
+      const loadedEntries = [];
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        const matches = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || line.split(",");
+        if (matches.length < 5) continue;
+        const cleanStr = s => s ? s.replace(/^"|"$/g, "").trim() : "";
+        
+        loadedEntries.push({
+          id: Date.now() + i,
+          date: cleanStr(matches[0]),
+          ticker: cleanStr(matches[1]),
+          entryPrice: cleanStr(matches[2]),
+          shares: cleanStr(matches[3]),
+          verdict: cleanStr(matches[4]),
+          entryType: cleanStr(matches[5]) || "trend",
+          note: cleanStr(matches[6]) || "",
+          outcome: cleanStr(matches[7]) || ""
+        });
+      }
+      
+      if (!loadedEntries.length) { alert("No valid records found in file."); return; }
+      
+      if (confirm(`Do you want to import ${loadedEntries.length} items?`)) {
+        const combined = [...loadedEntries, ...generalLog];
+        const uniqueMap = Array.from(new Map(combined.map(item => [item.date + item.ticker + item.entryPrice, item])).values());
+        generalLog = uniqueMap;
+        localStorage.setItem("swing-log-native-v2", JSON.stringify(generalLog));
+        updateLogTabUI();
+        if(currentTab === 'log') renderLogArchiveList();
+        alert("Imported successfully.");
+      }
+    } catch(err) {
+      alert("Error reading file.");
+    }
+  };
+  reader.readAsText(file, "UTF-8");
+}
+</script>
+</body>
+</html>
