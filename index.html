@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Swing Trade Decision Tool</title>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght=400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; }
     body { margin: 0; background: #f7f4eb; font-family: 'IBM Plex Mono', monospace; color: #2d3748; padding: 24px 18px; }
@@ -74,7 +74,8 @@
 <div class="container">
   <div class="header">
     <h1 id="current-date-title">Swing Trade Tool</h1>
-    <div class="subtitle" id="strategy-subtitle">£10,000 blocks · 3-Phase Stop Strategy · £20,000 account</div>
+    <div class="subtitle" id="strategy-subtitle">3-Phase Stop Strategy · you choose the share count</div>
+    <div class="subtitle"><span id="fx-label"></span> · <a href="#" onclick="refreshFX(true);return false;">↻ refresh</a> · <a href="#" onclick="setFXManual();return false;">set manually</a></div>
   </div>
 
   <div class="card">
@@ -112,7 +113,7 @@
         <div class="g3" style="margin-bottom: 8px;">
           <div><div class="label">Display Name</div><input type="text" id="cfg-name" placeholder="e.g. British American Tob."></div>
           <div><div class="label">Beta</div><input type="number" step="any" id="cfg-beta" placeholder="e.g. 0.9"></div>
-          <div><div class="label">Block Size (£)</div><input type="number" id="cfg-block" placeholder="e.g. 10000"></div>
+          <div style="display:none"><div class="label">Block Size (£)</div><input type="number" id="cfg-block" placeholder="e.g. 10000"></div>
         </div>
         <div class="g3" style="margin-bottom: 10px;">
           <div><div class="label">RSI Entry Zone</div><input type="text" id="cfg-rsiLabel" placeholder="e.g. 35–48"></div>
@@ -152,6 +153,26 @@
       <button type="button" onclick="clearChecklistForCurrent()" style="background: none; border: 1px dashed #d92b4b; color: #d92b4b; padding: 4px 8px; border-radius: 4px; font-family: inherit; font-size: 9px; font-weight: 700; cursor: pointer;">
         🗑 Clear Answers
       </button>
+    </div>
+    <div class="card">
+      <div class="label">Setup numbers (TradingView) — enables stop, size, R:R and earnings checks</div>
+      <div class="g3" style="margin-bottom:8px;">
+        <div><div class="label">Price</div><input type="number" step="any" id="su-price" oninput="saveSetup()"></div>
+        <div><div class="label">ATR (14)</div><input type="number" step="any" id="su-atr" oninput="saveSetup()"></div>
+        <div><div class="label">Support / floor</div><input type="number" step="any" id="su-support" oninput="saveSetup()"></div>
+      </div>
+      <div class="g2" style="margin-bottom:8px;">
+        <div><div class="label">Next resistance</div><input type="number" step="any" id="su-resistance" oninput="saveSetup()"></div>
+        <div><div class="label">Next earnings date</div><input type="date" id="su-earnings" oninput="saveSetup()"></div>
+      </div>
+      <div style="margin-bottom:8px;"><div class="label">Longer-run ATR (e.g. 50-day, optional)</div><input type="number" step="any" id="su-atrlong" oninput="saveSetup()"></div>
+      <div class="metric-box" id="su-vol" style="margin-bottom:8px; font-size:11px; line-height:1.7;"></div>
+      <div style="margin-bottom:8px;"><div class="label">Shares I plan to buy</div><input type="number" id="su-shares" oninput="saveSetup()"></div>
+      <div class="metric-box" id="su-cost" style="margin-bottom:8px; font-size:11px; line-height:1.7;"></div>
+      <div class="g2">
+        <div><div class="label">Account size (£)</div><input type="number" id="su-account" oninput="saveSetup()"></div>
+        <div><div class="label">Max risk per trade (%)</div><input type="number" step="any" id="su-risk" oninput="saveSetup()"></div>
+      </div>
     </div>
     <form id="checklist-form" onsubmit="event.preventDefault();"></form>
     
@@ -199,6 +220,7 @@
       <div><div class="label">Current ATR (14)</div><input type="number" step="any" id="tm-currentATR" oninput="updateTMData()"></div>
     </div>
     <div><div class="label">Channel upper line</div><input type="number" step="any" id="tm-channelUpper" oninput="updateTMData()"></div>
+    <div style="margin-top:10px;"><div class="label">Highest close since entry</div><input type="number" step="any" id="tm-highClose" oninput="updateTMData()"></div>
 
     <div class="p-and-l" id="tm-pl-box">
       <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;">
@@ -217,6 +239,11 @@
       <div class="g2">
         <div class="card" id="card-p2-trig" style="border-left:3px solid #d6d0c2;"><div class="metric-label">Trigger price (+5%)</div><div class="metric-val" id="out-p2-trig"></div></div>
         <div class="card" style="border-left:3px solid #b87a00;"><div class="metric-label">New Stop (BE)</div><div class="metric-val" id="out-p2-stop"></div></div>
+      </div>
+      <div class="divider"><div class="label" style="margin:0;">Phase 3 — Trail & Exit</div><div class="divider-line"></div></div>
+      <div class="g2">
+        <div class="card" style="border-left:3px solid #008a65;"><div class="metric-label">Trailing stop</div><div class="metric-val" id="out-p3-trail"></div></div>
+        <div class="card" style="border-left:3px solid #718096;"><div class="metric-label">Days held</div><div class="metric-val" id="out-hold"></div></div>
       </div>
     </div>
   </div>
@@ -272,7 +299,43 @@ const TICKERS = Object.keys(PROFILES);
 const TIER_LABEL = {1:"★ Tier 1 — Best fit", 2:"◆ Tier 2 — Works, slower", 3:"⚠ Tier 3 — High risk"};
 const TIER_COLOR = {1:"#008a65", 2:"#2b6cb0", 3:"#b87a00"};
 
-const GBP_USD = 1.27;
+let FX = JSON.parse(localStorage.getItem("swing-fx-v3")) || { rate: 1.27, date: "default", src: "fallback", checked: "" };
+let GBP_USD = FX.rate;
+const FX_SOURCES = [
+  ["https://api.frankfurter.dev/v1/latest?base=GBP&symbols=USD", d => [d.rates.USD, d.date, "ECB"]],
+  ["https://open.er-api.com/v6/latest/GBP", d => [d.rates.USD, (d.time_last_update_utc || "").slice(5, 16), "er-api"]]
+];
+function showFX(note) {
+  document.getElementById('fx-label').innerText = `GBP/USD ${GBP_USD.toFixed(4)} (${FX.src}, ${FX.date})${note || ""}`;
+  updateCostBox();
+}
+// Fetches once per day (ECB reference rate, set around 16:00 CET); force=true re-fetches
+async function refreshFX(force) {
+  const today = new Date().toISOString().slice(0, 10);
+  if (!force && FX.checked === today) { showFX(); return; }
+  let ok = false;
+  for (const [url, parse] of FX_SOURCES) {
+    try {
+      const d = await (await fetch(url)).json();
+      const [rate, date, src] = parse(d);
+      if (rate > 0.5 && rate < 3) { FX = { rate, date, src, checked: today }; GBP_USD = rate; ok = true; break; }
+    } catch (e) { /* try next source */ }
+  }
+  if (ok) localStorage.setItem("swing-fx-v3", JSON.stringify(FX));
+  showFX(ok ? "" : " — fetch failed, using last value");
+  updateTMData();
+  if (Object.keys(checklistAnswers).length === QUESTIONS.length) evaluateDecisionMatrix();
+}
+function setFXManual() {
+  const v = parseFloat(prompt("GBP/USD rate:", GBP_USD));
+  if (!(v > 0.5 && v < 3)) return;
+  const today = new Date().toISOString().slice(0, 10);
+  FX = { rate: v, date: today, src: "manual", checked: today };
+  GBP_USD = v;
+  localStorage.setItem("swing-fx-v3", JSON.stringify(FX));
+  showFX(); updateTMData();
+  if (Object.keys(checklistAnswers).length === QUESTIONS.length) evaluateDecisionMatrix();
+}
 const FX_COST = 0.003;
 const TODAY_STR = new Date().toLocaleDateString("en-GB", {day:"2-digit", month:"short", year:"numeric"});
 
@@ -285,11 +348,177 @@ let generalLog = JSON.parse(localStorage.getItem("swing-log-native-v2")) || [];
 let customProfilesStore = JSON.parse(localStorage.getItem("swing-custom-profiles-v2")) || {};
 
 // Merge saved custom profiles into runtime engine object
+const ORIG_TIER = {};
+Object.keys(BASE_PROFILES).forEach(k => ORIG_TIER[k] = BASE_PROFILES[k].tier);
+let tierOverrides = JSON.parse(localStorage.getItem("swing-tier-v3")) || {};
 Object.keys(customProfilesStore).forEach(k => {
   if (PROFILES[k]) PROFILES[k] = { ...PROFILES[k], ...customProfilesStore[k] };
 });
+Object.keys(tierOverrides).forEach(k => { if (PROFILES[k]) PROFILES[k].tier = tierOverrides[k]; });
 
 let checklistAnswers = {};
+let setupStore = JSON.parse(localStorage.getItem("swing-setup-v3")) || {};
+let account = JSON.parse(localStorage.getItem("swing-account-v3")) || { size: 20000, riskPct: 1 };
+const SU = ['price', 'atr', 'support', 'resistance', 'earnings', 'shares', 'atrlong'];
+let volHist = JSON.parse(localStorage.getItem("swing-vol-v3")) || {};
+
+// Volatility bands on ATR(14) as % of price: <2.5% slow (Tier 2 type), 2.5-5% normal (Tier 1 type), >5% high (Tier 3 type)
+// Hysteresis: leaving a tier needs a clear margin past the band edge, so tickers near a boundary don't flip back and forth
+function targetTier(a, cur) {
+  if (cur === 3) return a < 4.5 ? (a < 2.0 ? 2 : 1) : 3;
+  if (cur === 2) return a > 5.5 ? 3 : a > 3.0 ? 1 : 2;
+  return a > 5.5 ? 3 : a < 2.0 ? 2 : 1;
+}
+function setTier(n) {
+  const t = currentTicker;
+  if (n) tierOverrides[t] = n; else delete tierOverrides[t];
+  localStorage.setItem("swing-tier-v3", JSON.stringify(tierOverrides));
+  PROFILES[t].tier = n || ORIG_TIER[t];
+  document.getElementById(`tier${PROFILES[t].tier}-buttons`).appendChild(document.getElementById(`btn-ticker-${t}`));
+  selectTicker(t);
+}
+function band(a) { return a < 2.5 ? 2 : a <= 5 ? 1 : 3; }
+// The asset's own stop range is a floor; current ATR can only widen it (stop >= 1 ATR, ceiling >= 1.8 ATR)
+function stopRange(p, price, atr) {
+  const a = price && atr ? atr / price * 100 : 0;
+  const lo = Math.max(p.stopMin, a);
+  return [lo, Math.max(lo, p.stopMax, a * 1.8)];
+}
+function recordVol() {
+  const s = setupStore[currentTicker] || {}, a = parseFloat(s.atr), px = parseFloat(s.price);
+  if (!a || !px) return;
+  const h = volHist[currentTicker] || {};
+  h[new Date().toISOString().slice(0, 10)] = +(a / px * 100).toFixed(2);
+  const n = {};
+  Object.keys(h).sort().slice(-15).forEach(k => n[k] = h[k]);
+  volHist[currentTicker] = n;
+  localStorage.setItem("swing-vol-v3", JSON.stringify(volHist));
+}
+function updateVolBox() {
+  const el = document.getElementById('su-vol'), p = PROFILES[currentTicker];
+  if (!el || !p) return;
+  const s = setupStore[currentTicker] || {};
+  const px = parseFloat(s.price), atr = parseFloat(s.atr), al = parseFloat(s.atrlong);
+  if (!px || !atr) { el.innerText = "Enter price and ATR to see volatility, a suggested tier and the stop range."; return; }
+  const a = atr / px * 100, b = band(a);
+  const names = { 1: "normal (Tier 1 type)", 2: "slow (Tier 2 type)", 3: "high (Tier 3 type)" };
+  const [lo, hi] = stopRange(p, px, atr);
+  const cutoff = new Date(Date.now() - 14 * 864e5).toISOString().slice(0, 10);
+  const raw = Object.entries(volHist[currentTicker] || {}).filter(([d]) => d >= cutoff).map(([, v]) => v);
+  const recent = raw.map(band);
+  const tg = raw.map(v => targetTier(v, p.tier));
+  const moveTo = tg.length >= 3 && tg.every(x => x === tg[0]) && tg[0] !== p.tier ? tg[0] : 0;
+  const confirmed = recent.length >= 3 && recent.every(x => x === b);
+  let html = `ATR ${a.toFixed(1)}% of price → <b>${names[b]}</b> volatility (${confirmed ? "consistent over the last 2 weeks" : "provisional: needs 3+ entries over 2 weeks in the same band"})`;
+  if (moveTo) html += `<br>⚠ ${p.cleanTickerLabel || currentTicker} is in Tier ${p.tier} but has behaved like Tier ${moveTo} for 2 weeks. <button type="button" onclick="setTier(${moveTo})" style="background:#c05621; color:#fff; border:none; padding:4px 8px; border-radius:4px; font-family:inherit; font-size:10px; font-weight:700; cursor:pointer;">Move to Tier ${moveTo}</button>`;
+  if (tierOverrides[currentTicker]) html += `<br><a href="#" onclick="setTier(0);return false;">↩ Restore original Tier ${ORIG_TIER[currentTicker]}</a>`;
+  html += `<br>Stop range used: ${lo.toFixed(1)}–${hi.toFixed(1)}% (the asset's own ${p.stopMin}–${p.stopMax}% only ever widens)`;
+  if (al > 0) {
+    const r = atr / al;
+    html += `<br>Current ATR is ${r.toFixed(2)}× its longer-run level` + (r > 1.3 ? " ⚠ unusually volatile, consider a smaller size" : r < 0.75 ? " (unusually quiet; stops may be tight versus normal moves)" : "");
+  }
+  el.innerHTML = html;
+}
+function updateCostBox() {
+  updateVolBox();
+  const el = document.getElementById('su-cost');
+  const s = setupStore[currentTicker] || {}, p = PROFILES[currentTicker];
+  const n = parseInt(s.shares), px = parseFloat(s.price);
+  if (!el || !p) return;
+  if (!n || !px) { el.innerText = "Enter the price and the number of shares to see the total cost."; return; }
+  const isUK = p.name.includes('(GBP)') || p.name.includes('GBX');
+  const fmt = x => x.toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 2 });
+  const local = n * px, gbp = isUK ? local : local / GBP_USD, fee = isUK ? 0 : gbp * FX_COST, total = gbp + fee;
+  let html = isUK
+    ? `<b>${n} × £${fmt(px)} = £${fmt(local)}</b>`
+    : `<b>${n} × $${fmt(px)} = $${fmt(local)}</b> → £${fmt(gbp)} at ${GBP_USD.toFixed(4)} + £${fmt(fee)} FX fee (${(FX_COST * 100).toFixed(2)}%) = <b>£${fmt(total)}</b>`;
+  html += `<br>${(total / account.size * 100).toFixed(0)}% of your £${account.size.toLocaleString()} account`;
+  const plan = calcPlan(p, 'trend', 1);
+  if (plan) {
+    const loss = n * (px - plan.stop) / plan.rate;
+    html += `<br>If stopped at ${plan.stop.toFixed(2)}: about −£${fmt(loss)} (${(loss / account.size * 100).toFixed(1)}% of account; your limit is ${account.riskPct}%)`;
+  }
+  el.innerHTML = html;
+}
+function loadSetup(t) {
+  const s = setupStore[t] || {};
+  SU.forEach(k => document.getElementById('su-' + k).value = s[k] || "");
+  document.getElementById('su-account').value = account.size;
+  document.getElementById('su-risk').value = account.riskPct;
+  updateCostBox();
+}
+function saveSetup() {
+  const s = setupStore[currentTicker] || {};
+  SU.forEach(k => s[k] = document.getElementById('su-' + k).value);
+  setupStore[currentTicker] = s;
+  localStorage.setItem("swing-setup-v3", JSON.stringify(setupStore));
+  account.size = parseFloat(document.getElementById('su-account').value) || 20000;
+  account.riskPct = parseFloat(document.getElementById('su-risk').value) || 1;
+  localStorage.setItem("swing-account-v3", JSON.stringify(account));
+  recordVol();
+  updateCostBox();
+  if (Object.keys(checklistAnswers).length === QUESTIONS.length) evaluateDecisionMatrix();
+}
+// Make RSI / Stochastic answer buttons follow the selected asset's own zones
+function relabelQuestions(p) {
+  const lo = p.rsiFloor, hi = parseInt(p.rsiLabel.split(/[–-]/)[1]), f = p.stochFloor;
+  const L = (k, v, t) => { const b = document.getElementById(`opt-${k}-${v}`); if (b) b.innerText = t; };
+  if (lo && hi) {
+    L('rsiZone', 'below35', `Below ${lo}`); L('rsiZone', '35to50', `${lo}–${hi} ★`);
+    L('rsiZone', '50to60', `${hi}–${hi + 10}`); L('rsiZone', 'above60', `Above ${hi + 10}`);
+  }
+  L('stochLevel', 'below20', `Both below ${f} ★★`); L('stochLevel', '20to30', `Both ${f}–${f + 10} ★`);
+  L('stochLevel', '30to50', `${f + 10}–50 (mild)`);
+}
+// Stop = channel/support (or ATR), kept inside the asset's own stop range; size = lower of risk limit and block cap
+function calcPlan(p, type, sm) {
+  const s = setupStore[currentTicker] || {};
+  const price = parseFloat(s.price), atr = parseFloat(s.atr);
+  if (!price || !atr) return null;
+  const sup = parseFloat(s.support) || 0, res = parseFloat(s.resistance) || 0;
+  const raw = sup ? sup - price * 0.005 : price - atr * p.atrMult * (type === 'counter' ? 0.8 : 1);
+  const [rLo, rHi] = stopRange(p, price, atr);
+  const distPct = Math.min(Math.max((price - raw) / price * 100, rLo), rHi);
+  const stop = price * (1 - distPct / 100);
+  const isUK = p.name.includes('(GBP)') || p.name.includes('GBX');
+  const rate = isUK ? 1 : GBP_USD;
+  const riskGBP = account.size * account.riskPct / 100;
+  const riskShares = Math.floor(riskGBP * rate / (price - stop));
+  const maxShares = Math.max(Math.floor(riskShares * sm), 0);
+  const planned = parseInt(s.shares) || 0;
+  const shares = planned || maxShares;
+  return { price, atr, stop, riskPct: distPct, shares, maxShares, planned, sm, rate, riskGBP, gbp: Math.round(shares * price / rate),
+    rr: res > price ? (res - price) / (price - stop) : null, rewardPct: res > price ? (res - price) / price * 100 : 0 };
+}
+// Hard gates the checklist itself cannot see: earnings, risk/reward, risk limit, Friday
+function applyOverlays(v, p) {
+  window.lastPlan = null;
+  if (v.type === 'none') return v;
+  const s = setupStore[currentTicker] || {};
+  const block = (title, reason, action) => ({ verdict: title, color: "#d92b4b", emoji: "🚫", type: "none", reason, action, rules: [] });
+  if (s.earnings) {
+    const d = Math.round((new Date(s.earnings) - new Date(new Date().toDateString())) / 864e5);
+    if (d >= 0 && d <= p.holdDays) return block("WAIT — EARNINGS INSIDE HOLD WINDOW", `Earnings are in ${d} day(s), inside the ${p.holdDays}-day hold window. A gap can jump straight through any stop.`, "Skip, or re-check after the report.");
+  }
+  const sm = v.type === 'counter' ? 0.5 : (v.verdict.startsWith('DECENT') ? 0.6 : 1);
+  const plan = calcPlan(p, v.type, sm);
+  const rules = [];
+  if (!plan) {
+    rules.push("Enter price and ATR above to get a stop and a risk-based size");
+  } else {
+    if (plan.maxShares < 1) return block("WAIT — STOP TOO WIDE FOR YOUR RISK LIMIT", `A ${plan.riskPct.toFixed(1)}% stop risks more than £${Math.round(plan.riskGBP)} even on one unit.`, "Skip, or raise your risk % deliberately.");
+    if (plan.rr !== null && plan.rr < 1.5) return block("WAIT — RISK/REWARD TOO LOW", `Stop ${plan.stop.toFixed(2)} risks ${plan.riskPct.toFixed(1)}% against ${plan.rewardPct.toFixed(1)}% to resistance (R:R ${plan.rr.toFixed(2)}, minimum 1.5).`, "Wait for a pullback closer to support, or a close above resistance.");
+    window.lastPlan = plan;
+    rules.push(`Size: ${plan.shares} units (about £${plan.gbp.toLocaleString()}) ` + (plan.planned ? `— your plan; suggested max by risk limit: ${plan.maxShares}` + (plan.shares > plan.maxShares ? " ⚠ above your limit" : "") : "— suggested by your risk limit"),
+      `Stop: ${plan.stop.toFixed(2)} (−${plan.riskPct.toFixed(1)}%), max loss about £${Math.round(plan.shares * (plan.price - plan.stop) / plan.rate)}`,
+      plan.rr !== null ? `R:R to resistance: ${plan.rr.toFixed(2)}` : "Enter next resistance to check R:R");
+  }
+  rules.push(v.type === 'counter' ? "Target: MA50 only. Max hold: 5 days" : `Sell half at +5%, then stop to breakeven. Max hold: ${p.holdDays} days`);
+  if (new Date().getDay() === 5) rules.push("Friday: weekend gap risk, consider half size");
+  v.action = v.type === 'counter' ? "Enter at the next open with a small position and set the stop immediately. Target the MA50 only." : "Enter at the next open, then set the stop immediately.";
+  v.rules = rules;
+  return v;
+}
 
 const QUESTIONS = [
   { k: "priceVsMA50", l: "1 · Is price ABOVE the MA50?", o: [{v:"above",t:"✓ Above MA50",c:"#008a65"},{v:"on",t:"≈ Right on it",c:"#b87a00"},{v:"below",t:"✗ Below MA50",c:"#d92b4b"}] },
@@ -353,6 +582,7 @@ window.onload = function() {
 
   if(!PROFILES[currentTicker]) currentTicker = 'NET';
   selectTicker(currentTicker);
+  refreshFX(false);
 };
 
 // ==========================================================
@@ -402,12 +632,14 @@ function selectTicker(t) {
     <div class="metric-box"><div class="metric-label">Beta</div><div class="metric-val">~${p.beta}</div></div>
     <div class="metric-box"><div class="metric-label">RSI entry zone</div><div class="metric-val">${p.rsiLabel}</div></div>
     <div class="metric-box"><div class="metric-label">Stoch floor</div><div class="metric-val">Below ${p.stochFloor}</div></div>
-    <div class="metric-box"><div class="metric-label">Block size</div><div class="metric-val">£${p.blockGBP.toLocaleString()}</div></div>
+    
     <div class="metric-box"><div class="metric-label">Stop range</div><div class="metric-val">${p.stopMin}–${p.stopMax}%</div></div>
     <div class="metric-box"><div class="metric-label">Max hold</div><div class="metric-val">${p.holdDays} days</div></div>
   `;
   document.getElementById('meta-note').innerText = `💡 ${p.note}`;
 
+  relabelQuestions(p);
+  loadSetup(t);
   // Load Saved Checklist Answers for this Ticker
   checklistAnswers = checklistAnswersStore[t] || {};
   document.getElementById('verdict-wrapper').style.display = 'none';
@@ -537,7 +769,7 @@ function clearChecklistForCurrent() {
 function switchTab(t) {
   currentTab = t;
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
+  document.querySelectorAll('.tab-btn')[{check:0, trade:1, log:2}[t]].classList.add('active');
 
   document.getElementById('tab-check').style.display = t === 'check' ? 'block' : 'none';
   document.getElementById('tab-trade').style.display = t === 'trade' ? 'block' : 'none';
@@ -562,7 +794,7 @@ function evaluateDecisionMatrix() {
     if(condsMet) {
       v = {
         verdict:"COUNTER-TREND — SMALL POSITION ONLY", color:"#b87a00", emoji:"⚡", type: "counter",
-        reason:"All 5 counter-trend conditions met: Stoch deeply oversold + K crossing D, RSI hooking up, strong reversal candle, above-average volume. Price is below MA50 so this is a snap-back trade only.",
+        reason:"All 6 counter-trend conditions met: Stoch deeply oversold + K crossing D, RSI hooking up, strong reversal candle, above-average volume. Price is below MA50 so this is a snap-back trade only.",
         action:`Enter with HALF your normal block (£${(profile.blockGBP/2).toLocaleString()} max). Target is the MA50 line only — take profit when price touches MA50 from below. Tight stop. Max hold: 5 days.`,
         rules:[`Position size: £${(profile.blockGBP/2).toLocaleString()} maximum (half block)`,`Target: MA50 line only — exit when price touches it from below`,`Stop: ATR × 0.8 below entry (tighter than normal)`,`Max hold: 5 days regardless`]
       };
@@ -574,28 +806,29 @@ function evaluateDecisionMatrix() {
   } else if(chk.ma50Dir === "down") {
     v = { verdict:"NO TRADE — MA50 POINTING DOWN", color:"#d92b4b", emoji:"🚫", type:"none", reason:"Price is above MA50 but MA50 itself is pointing sharply down — the trend is deteriorating fast.", action:"Wait for MA50 to flatten before considering entry." };
   } else if(chk.rsiZone === "above60") {
-    v = { verdict:"WAIT — RSI TOO HOT", color:"#b87a00", emoji:"⏳", type:"none", reason:`RSI above 60 on ${activeLabel} — you'd be chasing. ${activeLabel}'s ideal entry RSI is ${profile.rsiLabel}.`, action:"Set a TradingView alert for RSI crossing back down." };
+    v = { verdict:"WAIT — RSI TOO HOT", color:"#b87a00", emoji:"⏳", type:"none", reason:`RSI above the entry zone on ${activeLabel} — you'd be chasing. ${activeLabel}'s ideal entry RSI is ${profile.rsiLabel}.`, action:"Set a TradingView alert for RSI crossing back down." };
   } else if(chk.rsiZone === "below35" && chk.rsiHook === "no") {
     v = { verdict:"WAIT — STILL FALLING", color:"#b87a00", emoji:"⏳", type:"none", reason:"RSI is below 35 but hasn't hooked upward yet. The dip may not be over.", action:"Wait for RSI to tick up for 2 consecutive days." };
   } else {
-    let score = 0;
+    let score = 0, mom = 0;
     let bonuses = [];
 
-    if(chk.rsiZone === "35to50") score += 3;
-    if(chk.rsiZone === "below35" && chk.rsiHook === "yes") score += 2;
-    if(chk.rsiZone === "50to60" && chk.rsiHook === "yes") score += 1;
-    if(chk.rsiHook === "yes") { score += 2; bonuses.push("RSI hooking up ✓"); }
+    if(chk.rsiZone === "35to50") mom += 3;
+    if(chk.rsiZone === "below35" && chk.rsiHook === "yes") mom += 2;
+    if(chk.rsiZone === "50to60" && chk.rsiHook === "yes") mom += 1;
+    if(chk.rsiHook === "yes") { mom += 2; bonuses.push("RSI hooking up ✓"); }
 
-    if(chk.stochLevel === "below20" && chk.stochCross === "crossed") { score += 4; bonuses.push("Dual oversold confluence ★★"); }
-    else if(chk.stochLevel === "below20" && chk.stochCross === "converging") { score += 2; bonuses.push("Stoch deeply oversold, cross imminent ★"); }
-    else if(chk.stochLevel === "20to30" && chk.stochCross === "crossed") { score += 2; bonuses.push("Stoch oversold + K crossed D ★"); }
-    else if(chk.stochCross === "crossed") { score += 1; bonuses.push("Stoch K crossed D"); }
+    if(chk.stochLevel === "below20" && chk.stochCross === "crossed") { mom += 4; bonuses.push("Dual oversold confluence ★★"); }
+    else if(chk.stochLevel === "below20" && chk.stochCross === "converging") { mom += 2; bonuses.push("Stoch deeply oversold, cross imminent ★"); }
+    else if(chk.stochLevel === "20to30" && chk.stochCross === "crossed") { mom += 2; bonuses.push("Stoch oversold + K crossed D ★"); }
+    else if(chk.stochCross === "crossed") { mom += 1; bonuses.push("Stoch K crossed D"); }
 
     if(chk.candle === "hammer" || chk.candle === "engulfing") { score += 2; bonuses.push("Reversal candle ✓"); }
     if(chk.volume === "above") { score += 1; bonuses.push("Above-average volume ✓"); }
-    if(chk.macd === "crossed" || chk.macd === "yes") score += 1;
+    if(chk.macd === "crossed" || chk.macd === "yes") mom += 1;
     if(chk.ma50Dir === "up") { score += 2; bonuses.push("MA50 trending up ✓"); }
 
+    score += Math.min(mom, 7); // RSI, Stoch and MACD overlap, so their combined weight is capped
     if(score >= 10) {
       v = {
         verdict:"STRONG SETUP — ENTER", color:"#008a65", emoji:"✅", type:"trend",
@@ -622,6 +855,7 @@ function evaluateDecisionMatrix() {
     }
   }
 
+  v = applyOverlays(v, profile);
   const wrapper = document.getElementById('verdict-wrapper');
   wrapper.style.display = 'block';
   wrapper.style.borderColor = v.color;
@@ -650,6 +884,17 @@ function evaluateDecisionMatrix() {
 function executeLogTrade() {
   const v = window.lastCalculatedVerdict;
   if(!v) return;
+  const plan = window.lastPlan;
+  if (plan && v.type !== 'none') {
+    const s = setupStore[currentTicker] || {};
+    const tm0 = tradeManagerStore[currentTicker] || {};
+    Object.assign(tm0, { entryPrice: String(plan.price), atrEntry: String(plan.atr), channelFloor: s.support || "", channelUpper: s.resistance || "",
+      sharesOverride: String(plan.shares), sizeMult: plan.sm, maxHold: v.type === 'counter' ? 5 : PROFILES[currentTicker].holdDays,
+      entryDate: tm0.entryDate || new Date().toISOString().slice(0, 10) });
+    tradeManagerStore[currentTicker] = tm0;
+    localStorage.setItem("swing-tm-native-v2", JSON.stringify(tradeManagerStore));
+    loadTMForTicker(currentTicker);
+  }
   
   const noteInput = document.getElementById('log-note-input');
   const entryPriceVal = document.getElementById('tm-entryPrice').value;
@@ -661,7 +906,7 @@ function executeLogTrade() {
     const p = PROFILES[currentTicker];
     const isUKAsset = p.name.includes('(GBP)');
     const rate = isUKAsset ? 1.0 : GBP_USD;
-    finalShares = Math.floor((p.blockGBP * rate) / parseFloat(entryPriceVal));
+    finalShares = parseInt((setupStore[currentTicker] || {}).shares) || 0;
   }
 
   const logEntry = {
@@ -684,10 +929,11 @@ function executeLogTrade() {
   
   let tm = tradeManagerStore[currentTicker] || {};
   if(!tm.entryPrice && entryPriceVal) tm.entryPrice = entryPriceVal;
+  tm.logId = logEntry.id;
   tradeManagerStore[currentTicker] = tm;
   localStorage.setItem("swing-tm-native-v2", JSON.stringify(tradeManagerStore));
 
-  switchTab('trade');
+  if (v.type !== 'none') switchTab('trade');
   loadTMForTicker(currentTicker);
 }
 
@@ -743,7 +989,7 @@ function renderLogArchiveList() {
 // ==========================================================
 function loadTMForTicker(t) {
   let tm = tradeManagerStore[t] || {};
-  const fields = ['entryDate', 'entryPrice', 'atrEntry', 'channelFloor', 'currentDate', 'currentPrice', 'currentATR', 'channelUpper', 'sharesOverride'];
+  const fields = ['entryDate', 'entryPrice', 'atrEntry', 'channelFloor', 'currentDate', 'currentPrice', 'currentATR', 'channelUpper', 'sharesOverride', 'highClose'];
   fields.forEach(f => {
     const el = document.getElementById(`tm-${f}`);
     if(el) el.value = tm[f] || "";
@@ -753,7 +999,7 @@ function loadTMForTicker(t) {
 
 function updateTMData() {
   let tm = tradeManagerStore[currentTicker] || {};
-  const fields = ['entryDate', 'entryPrice', 'atrEntry', 'channelFloor', 'currentDate', 'currentPrice', 'currentATR', 'channelUpper', 'sharesOverride'];
+  const fields = ['entryDate', 'entryPrice', 'atrEntry', 'channelFloor', 'currentDate', 'currentPrice', 'currentATR', 'channelUpper', 'sharesOverride', 'highClose'];
   
   fields.forEach(f => {
     const el = document.getElementById(`tm-${f}`);
@@ -775,11 +1021,15 @@ function updateTMData() {
   const rate = isUKAsset ? 1.0 : GBP_USD;
   const fxCostRate = isUKAsset ? 0.0 : FX_COST;
 
-  const placeholderShares = ep > 0 ? Math.floor((profile.blockGBP * rate) / ep) : 0;
+  const placeholderShares = parseInt((setupStore[currentTicker] || {}).shares) || 0;
   const shInput = document.getElementById('tm-sharesOverride');
   if(shInput) shInput.placeholder = placeholderShares ? `${placeholderShares} (auto)` : "Override units";
 
   const finalShares = overr ? overr : placeholderShares;
+  if (tm.logId && ep && finalShares) {
+    const it = generalLog.find(x => x.id === tm.logId);
+    if (it) { it.entryPrice = String(ep); it.shares = String(finalShares); localStorage.setItem("swing-log-native-v2", JSON.stringify(generalLog)); }
+  }
 
   if(!ep || !finalShares) {
     document.getElementById('tm-pl-box').style.display = 'none';
@@ -794,7 +1044,8 @@ function updateTMData() {
 
   const atrStop = atrE > 0 ? ep - (atrE * profile.atrMult) : 0;
   const chanStop = cf > 0 ? cf - (ep * 0.005) : 0;
-  let p1Stop = Math.max(atrStop, chanStop) || atrStop || chanStop || 0;
+  let p1Stop = chanStop || atrStop || 0;
+  if (p1Stop && ep) { const [rLo, rHi] = stopRange(profile, ep, atrE); const d = Math.min(Math.max((ep - p1Stop) / ep * 100, rLo), rHi); p1Stop = ep * (1 - d / 100); }
 
   const p2Price = ep * 1.05;
   const p2Reached = cp >= p2Price;
@@ -843,6 +1094,14 @@ function updateTMData() {
     p2Card.style.background = "#ede8dc";
   }
   document.getElementById('out-p2-stop').innerText = `${(ep * 1.002).toFixed(2)} (Break Even)`;
+  const hiC = Math.max(parseFloat(tm.highClose) || 0, cp);
+  const trailStop = Math.max(hiC - atrC * profile.atrMult, ep * 1.002);
+  document.getElementById('out-p3-trail').innerText = p2Reached ? `${trailStop.toFixed(2)} (high ${hiC.toFixed(2)} − ATR×${profile.atrMult})` : `Starts after +5% (${p2Price.toFixed(2)})`;
+  const mh = parseInt(tm.maxHold) || profile.holdDays;
+  const held = (tm.entryDate && tm.currentDate) ? Math.round((new Date(tm.currentDate) - new Date(tm.entryDate)) / 864e5) : null;
+  const hEl = document.getElementById('out-hold');
+  hEl.innerText = held === null ? `Max ${mh} days (fill both dates)` : `${held} / ${mh} days${held >= mh ? ' — EXIT NOW' : ''}`;
+  hEl.style.color = (held !== null && held >= mh) ? '#d92b4b' : '';
 }
 
 function setBadgePhases(phaseNum) {
